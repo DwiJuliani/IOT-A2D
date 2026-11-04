@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "author": "Kelompok IoT",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-small-sound-sensor",
+      "id": "mic1",
+      "top": 20,
+      "left": -170,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledLamp",
+      "top": -120,
+      "left": 190,
+      "attrs": {
+        "color": "yellow"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledStatus",
+      "top": -120,
+      "left": 260,
+      "attrs": {
+        "color": "green"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": -50,
+      "left": 180,
+      "rotate": 90,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": -50,
+      "left": 250,
+      "rotate": 90,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 140,
+      "left": 220,
+      "attrs": {
+        "color": "blue"
+      }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnClap",
+      "top": 230,
+      "left": 220,
+      "attrs": {
+        "color": "red",
+        "label": "CLAP"
+      }
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "mic1:VCC",
+      "esp:3V3",
+      "red",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "mic1:GND",
+      "esp:GND.1",
+      "black",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "mic1:AO",
+      "esp:34",
+      "orange",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "mic1:DO",
+      "esp:27",
+      "purple",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "esp:26",
+      "r1:1",
+      "gold",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "r1:2",
+      "ledLamp:A",
+      "gold",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "ledLamp:C",
+      "esp:GND.2",
+      "black",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "esp:25",
+      "r2:1",
+      "green",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "r2:2",
+      "ledStatus:A",
+      "green",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "ledStatus:C",
+      "esp:GND.2",
+      "black",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "esp:14",
+      "btn1:1.l",
+      "blue",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "btn1:2.l",
+      "esp:GND.2",
+      "black",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "esp:13",
+      "btnClap:1.l",
+      "red",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "btnClap:2.l",
+      "esp:GND.2",
+      "black",
+      [
+        "h0"
+      ]
+    ]
+  ],
+  "dependencies": {}
+}
