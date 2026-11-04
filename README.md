@@ -2,7 +2,7 @@
 
 Proyek tugas IoT: lampu pintar yang dikendalikan dengan **tepukan tangan dua kali (double clap)** menggunakan ESP32 dan sensor suara. Seluruh sistem disimulasikan di [Wokwi](https://wokwi.com).
 
-> 🔗 **Link simulasi Wokwi:** _(tempel link proyek Wokwi kalian di sini)_
+> 🔗 **Link simulasi Wokwi:** _(https://wokwi.com/projects/479765417567553537)_
 
 ## 1. Latar Belakang & Tujuan
 Saklar konvensional mengharuskan pengguna menyentuh perangkat secara fisik. Sistem ini memungkinkan lampu dinyalakan/dimatikan hanya dengan suara tepukan, sehingga lebih praktis, khususnya bagi lansia dan penyandang disabilitas.
