@@ -83,6 +83,8 @@ smart-lamp-esp32/
 - Penambahan sensor cahaya (LDR) agar hanya aktif saat gelap.
 
 ## 9. Anggota Kelompok
-| Nama | NIM |
-|---|---|
-| ... | ... |
+| No | Nama | NIM |
+|:---:|---|---|
+| 1 | Agief Vemas A | G1A024037 |
+| 2 | Dwi Juliani | G1A024084 |
+| 3 | Adiva Luthfiyyah Yulian | G1A024110 |
