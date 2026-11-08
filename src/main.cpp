@@ -4,14 +4,6 @@
  * 
  * Program Studi S1 Informatika, Fakultas Teknik, Universitas Bengkulu
  * Laboratorium Jaringan Komputer & Sistem Tertanam
- * 
- * Pemenuhan Syarat Ceklis Verifikasi Praktikum:
- * 1. PlatformIO IDE + ESP32 Framework Arduino (firmware.bin zero error)
- * 2. Rangkaian ESP32 + DHT22 + LED + Pushbutton + Sensor Suara dengan keluaran JSON valid
- * 3. Demonstrasi respon tombol secara non-blocking (millis())
- * 4. Struktur 5 folder standar & riwayat commit git tim
- * 5. [C5] Payload JSON menggunakan pustaka ArduinoJson (JsonDocument)
- * 6. [C6] Tombol darurat mengubah interval telemetri 2000 ms (Normal) <-> 500 ms (Cepat)
  */
 
 #include <Arduino.h>
@@ -22,31 +14,43 @@
 // Inisialisasi Objek Sensor DHT22
 DHT dht(PIN_DHT, DHTTYPE);
 
-// Status Lampu & Deteksi Suara
+// Status Lampu & LED
 bool lampOn = false;
+unsigned long statusOffTime = 0;
+
+// Logika Deteksi Tepukan (Double Clap)
 int clapCount = 0;
 unsigned long firstClapTime = 0;
 unsigned long lastClapTime = 0;
-unsigned long statusOffTime = 0;
-bool lastSoundState = LOW;
 
-// Status Tombol & Mode Interval (C6)
+// Tracking State Independen untuk Tombol CLAP (Pin 13)
+int lastClapBtnState = HIGH;
+unsigned long lastClapBtnDebounce = 0;
+
+// Tracking State Independen untuk Sensor Suara DO (Pin 27)
+int lastMicState = LOW;
+unsigned long lastMicDebounce = 0;
+
+// Status Tombol Manual / Mode Darurat (Pin 14)
 bool isEmergencyMode = false;
-int lastButtonState = HIGH;
-unsigned long lastButtonTime = 0;
+int lastManualBtnState = HIGH;
+unsigned long lastManualBtnDebounce = 0;
 
 // Variabel Waktu Telemetri (Non-Blocking)
 unsigned long previousTelemetryMillis = 0;
-unsigned long telemetryInterval = INTERVAL_NORMAL; // Default: 2000 ms
+unsigned long telemetryInterval = INTERVAL_NORMAL; // Default 2000 ms
 
 /**
- * Mengubah status lampu utama (ON / OFF)
+ * Mengubah status lampu utama (LED Kuning di GPIO 26)
  */
 void setLamp(bool state, const char *triggerSource) {
   lampOn = state;
   digitalWrite(PIN_LAMP, lampOn ? HIGH : LOW);
 
-  // Buat event log instan dalam format JSON
+  Serial.println("--------------------------------------------------");
+  Serial.printf(">> [LAMPU] Status: %s | Sumber: %s\n", lampOn ? "MENYALA (ON)" : "PADAM (OFF)", triggerSource);
+  Serial.println("--------------------------------------------------");
+
   JsonDocument eventDoc;
   eventDoc["event"] = "lamp_toggle";
   eventDoc["lamp_status"] = lampOn ? "ON" : "OFF";
@@ -58,7 +62,7 @@ void setLamp(bool state, const char *triggerSource) {
 }
 
 /**
- * Menyalakan LED indikator status tepukan terdeteksi sejenak
+ * Menyalakan LED indikator status tepukan (LED Hijau di GPIO 25)
  */
 void flashStatus() {
   digitalWrite(PIN_STATUS, HIGH);
@@ -66,80 +70,120 @@ void flashStatus() {
 }
 
 /**
- * Logika Deteksi Sensor Suara (Double Clap Non-Blocking)
- * Sistem mendeteksi 2 tepukan tangan dalam jendela waktu 1 detik.
+ * Fungsi Perekam Tepukan (Baik dari Tombol CLAP maupun Sensor Suara)
+ * Memerlukan 2 tepukan dalam rentang waktu < 1.2 detik (Double Clap).
  */
-void handleSoundSensor() {
+void registerClap(const char *source) {
   unsigned long now = millis();
+  flashStatus(); // LED hijau langsung menyala
 
-  // Suara terdeteksi dari pin digital DO sensor ATAU dari tombol simulasi CLAP di Wokwi
-  bool soundDetected = (digitalRead(PIN_SOUND_DO) == HIGH) ||
-                       (digitalRead(PIN_CLAP_SIM) == LOW);
-
-  // Deteksi tepi naik (transisi suara baru) dengan jeda debounce
-  if (soundDetected && !lastSoundState && (now - lastClapTime > CLAP_DEBOUNCE_MS)) {
-    lastClapTime = now;
-    flashStatus();
-
-    // Jika tepukan sebelumnya sudah melewati batas jendela waktu 1 detik, reset hitungan
-    if (clapCount > 0 && (now - firstClapTime > CLAP_WINDOW_MS)) {
-      clapCount = 0;
-    }
-
-    clapCount++;
-
-    if (clapCount == 1) {
-      firstClapTime = now;
-      int soundLevel = analogRead(PIN_SOUND_AO);
-
-      JsonDocument clapDoc;
-      clapDoc["event"] = "clap_detected";
-      clapDoc["clap_number"] = 1;
-      clapDoc["sound_analog"] = soundLevel;
-      serializeJson(clapDoc, Serial);
-      Serial.println();
-    } else if (clapCount == 2) {
-      // Dua tepukan dalam rentang waktu < 1 detik -> Toggle Lampu!
-      setLamp(!lampOn, "double_clap");
-      clapCount = 0;
-    }
+  // Jika tepukan sebelumnya sudah melewati batas jendela waktu, reset
+  if (clapCount > 0 && (now - firstClapTime > CLAP_WINDOW_MS)) {
+    clapCount = 0;
   }
-  lastSoundState = soundDetected;
 
-  // Jika hanya 1 tepukan dan jendela waktu habis, reset hitungan
-  if (clapCount == 1 && (now - firstClapTime > CLAP_WINDOW_MS)) {
+  clapCount++;
+
+  if (clapCount == 1) {
+    firstClapTime = now;
+    int soundLevel = analogRead(PIN_SOUND_AO);
+
+    Serial.println();
+    Serial.printf(">> [CLAP 1] Tepukan 1 terdeteksi (%s)! Level: %d\n", source, soundLevel);
+    Serial.println("   --> KLIK 1 KALI LAGI sekarang untuk menyalakan/mematikan lampu! <--");
+
+    JsonDocument clapDoc;
+    clapDoc["event"] = "clap_1";
+    clapDoc["source"] = source;
+    clapDoc["sound_analog"] = soundLevel;
+    clapDoc["message"] = "Tepukan 1 diterima, menunggu tepukan ke-2";
+    serializeJson(clapDoc, Serial);
+    Serial.println();
+
+  } else if (clapCount >= 2) {
+    unsigned long intervalClap = now - firstClapTime;
+    Serial.println();
+    Serial.printf(">> [CLAP 2] DOUBLE CLAP BERHASIL (%s)! Selang waktu: %lu ms.\n", source, intervalClap);
+
+    // Toggle status lampu utama
+    setLamp(!lampOn, source);
     clapCount = 0;
   }
 }
 
 /**
- * Penanganan Tombol Manual / Mode Darurat (Non-Blocking)
- * Memenuhi Ceklis 3 & Soal C6:
- * - Menggunakan non-blocking polling di loop() tanpa delay()
- * - Mengubah interval telemetri antara 2000 ms (Normal) dan 500 ms (Cepat)
+ * Penanganan Tombol Simulasi Tepukan (CLAP Button Merah di GPIO 13)
+ * Menggunakan deteksi tepi independen (bebas dari pengaruh pin sensor suara)
  */
-void handleButton() {
+void handleClapButton() {
+  int reading = digitalRead(PIN_CLAP_SIM);
+
+  // Deteksi transisi dari HIGH (lepas) ke LOW (ditekan)
+  if (reading == LOW && lastClapBtnState == HIGH &&
+      (millis() - lastClapBtnDebounce > CLAP_DEBOUNCE_MS)) {
+    lastClapBtnDebounce = millis();
+    registerClap("tombol_clap_merah");
+  }
+  lastClapBtnState = reading;
+}
+
+/**
+ * Penanganan Sensor Suara Fisik (DO di GPIO 27)
+ */
+void handleMicrophoneDO() {
+  int reading = digitalRead(PIN_SOUND_DO);
+
+  // Deteksi transisi suara
+  if (reading != lastMicState) {
+    if (reading == HIGH && (millis() - lastMicDebounce > CLAP_DEBOUNCE_MS)) {
+      lastMicDebounce = millis();
+      registerClap("sensor_suara_DO");
+    }
+    lastMicState = reading;
+  }
+}
+
+/**
+ * Reset otomatis jika hanya 1 tepukan dan jendela waktu habis
+ */
+void handleClapTimeout() {
+  if (clapCount == 1 && (millis() - firstClapTime > CLAP_WINDOW_MS)) {
+    Serial.println(">> [CLAP INFO] Batas waktu habis (hanya 1 tepukan). Hitungan di-reset.");
+    clapCount = 0;
+  }
+}
+
+/**
+ * Penanganan Tombol Manual / Mode Darurat (Tombol Biru di GPIO 14)
+ * Memenuhi Ceklis 3 & Soal C6:
+ * - Mengubah interval telemetri antara 2000 ms (Normal) dan 500 ms (Cepat)
+ * - Berfungsi sebagai saklar manual lampu
+ */
+void handleManualButton() {
   int reading = digitalRead(PIN_BUTTON);
 
-  if (reading == LOW && lastButtonState == HIGH &&
-      (millis() - lastButtonTime > BUTTON_DEBOUNCE)) {
-    lastButtonTime = millis();
+  if (reading == LOW && lastManualBtnState == HIGH &&
+      (millis() - lastManualBtnDebounce > BUTTON_DEBOUNCE)) {
+    lastManualBtnDebounce = millis();
 
     // Toggle mode interval (Soal C6)
     isEmergencyMode = !isEmergencyMode;
     telemetryInterval = isEmergencyMode ? INTERVAL_CEPAT : INTERVAL_NORMAL;
 
-    // Toggle lampu sebagai saklar manual cadangan
-    setLamp(!lampOn, "manual_button");
+    // Toggle lampu manual
+    setLamp(!lampOn, "tombol_manual_biru");
+
+    Serial.printf(">> [MODE TELEMETRI] Beralih ke: %s (%lu ms)\n",
+                  isEmergencyMode ? "CEPAT / DARURAT" : "NORMAL", telemetryInterval);
 
     JsonDocument btnDoc;
-    btnDoc["event"] = "button_pressed";
-    btnDoc["mode"] = isEmergencyMode ? "DARURAT (500ms)" : "NORMAL (2000ms)";
+    btnDoc["event"] = "button_mode_changed";
+    btnDoc["mode"] = isEmergencyMode ? "DARURAT" : "NORMAL";
     btnDoc["interval_ms"] = telemetryInterval;
     serializeJson(btnDoc, Serial);
     Serial.println();
   }
-  lastButtonState = reading;
+  lastManualBtnState = reading;
 }
 
 /**
@@ -151,11 +195,9 @@ void sendPeriodicTelemetry() {
   float kelembaban = dht.readHumidity();
   int soundLevel = analogRead(PIN_SOUND_AO);
 
-  // Jika DHT gagal dibaca, set nilai default agar JSON tetap valid
   if (isnan(suhu)) suhu = 0.0;
   if (isnan(kelembaban)) kelembaban = 0.0;
 
-  // Membangun payload JSON menggunakan ArduinoJson (JsonDocument)
   JsonDocument doc;
   doc["system"] = "SmartLamp_ESP32";
   doc["lamp_status"] = lampOn ? "ON" : "OFF";
@@ -166,7 +208,6 @@ void sendPeriodicTelemetry() {
   doc["interval_ms"] = telemetryInterval;
   doc["uptime_ms"] = millis();
 
-  // Serialisasi ke Serial Monitor
   serializeJson(doc, Serial);
   Serial.println();
 }
@@ -191,26 +232,32 @@ void setup() {
   Serial.println("==========================================================");
   Serial.println(" Perancangan Sistem Smart Lamp Berbasis ESP32 (Sensor Suara)");
   Serial.println(" Terintegrasi: Sensor Suara + DHT22 + LED Lampu + Tombol");
-  Serial.println(" Tepuk tangan 2x (atau tekan tombol CLAP merah) untuk saklar lampu.");
-  Serial.println(" Tekan tombol biru untuk saklar manual & ubah interval (C6).");
+  Serial.println(" 1. Klik tombol merah 'CLAP' 2 KALI CEPAT untuk nyalakan lampu.");
+  Serial.println(" 2. Klik tombol biru untuk saklar manual & ubah interval (C6).");
   Serial.println(" Output Telemetri: JSON Valid (ArduinoJson)");
   Serial.println("==========================================================");
 }
 
 void loop() {
-  // 1. Tangani sensor suara secara non-blocking setiap iterasi
-  handleSoundSensor();
+  // 1. Tangani tombol CLAP merah secara responsif
+  handleClapButton();
 
-  // 2. Tangani tombol manual secara non-blocking setiap iterasi
-  handleButton();
+  // 2. Tangani sensor suara DO
+  handleMicrophoneDO();
 
-  // 3. Matikan LED indikator status setelah durasi kedip selesai
+  // 3. Tangani batas waktu tepukan tunggal
+  handleClapTimeout();
+
+  // 4. Tangani tombol manual biru
+  handleManualButton();
+
+  // 5. Matikan LED indikator status hijau setelah durasi kedip selesai
   if (statusOffTime && millis() >= statusOffTime) {
     digitalWrite(PIN_STATUS, LOW);
     statusOffTime = 0;
   }
 
-  // 4. Kirim telemetri periodik secara non-blocking (millis())
+  // 6. Kirim telemetri periodik secara non-blocking (millis())
   unsigned long currentMillis = millis();
   if (currentMillis - previousTelemetryMillis >= telemetryInterval) {
     previousTelemetryMillis = currentMillis;
