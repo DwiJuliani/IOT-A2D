@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "author": "Kelompok IoT",
+  "author": "Kelompok IoT FT UNIB",
   "editor": "wokwi",
   "parts": [
     {
@@ -11,45 +11,27 @@
       "attrs": {}
     },
     {
-      "type": "wokwi-small-sound-sensor",
-      "id": "mic1",
-      "top": 20,
-      "left": -170,
+      "type": "wokwi-dht22",
+      "id": "dht1",
+      "top": -90,
+      "left": -120,
       "attrs": {}
     },
     {
       "type": "wokwi-led",
-      "id": "ledLamp",
-      "top": -120,
-      "left": 190,
+      "id": "led1",
+      "top": -90,
+      "left": 160,
       "attrs": {
-        "color": "yellow"
-      }
-    },
-    {
-      "type": "wokwi-led",
-      "id": "ledStatus",
-      "top": -120,
-      "left": 260,
-      "attrs": {
-        "color": "green"
+        "color": "red",
+        "label": "Telemetri"
       }
     },
     {
       "type": "wokwi-resistor",
       "id": "r1",
-      "top": -50,
-      "left": 180,
-      "rotate": 90,
-      "attrs": {
-        "value": "220"
-      }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r2",
-      "top": -50,
-      "left": 250,
+      "top": -30,
+      "left": 150,
       "rotate": 90,
       "attrs": {
         "value": "220"
@@ -57,149 +39,26 @@
     },
     {
       "type": "wokwi-pushbutton",
-      "id": "btn1",
-      "top": 140,
-      "left": 220,
-      "attrs": {
-        "color": "blue"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "btnClap",
-      "top": 230,
-      "left": 220,
+      "id": "btnEmergency",
+      "top": 120,
+      "left": 170,
       "attrs": {
         "color": "red",
-        "label": "CLAP"
+        "label": "EMERGENCY"
       }
     }
   ],
   "connections": [
-    [
-      "esp:TX",
-      "$serialMonitor:RX",
-      "",
-      []
-    ],
-    [
-      "esp:RX",
-      "$serialMonitor:TX",
-      "",
-      []
-    ],
-    [
-      "mic1:VCC",
-      "esp:3V3",
-      "red",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "mic1:GND",
-      "esp:GND.1",
-      "black",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "mic1:AO",
-      "esp:34",
-      "orange",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "mic1:DO",
-      "esp:27",
-      "purple",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "esp:26",
-      "r1:1",
-      "gold",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "r1:2",
-      "ledLamp:A",
-      "gold",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "ledLamp:C",
-      "esp:GND.2",
-      "black",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "esp:25",
-      "r2:1",
-      "green",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "r2:2",
-      "ledStatus:A",
-      "green",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "ledStatus:C",
-      "esp:GND.2",
-      "black",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "esp:14",
-      "btn1:1.l",
-      "blue",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "btn1:2.l",
-      "esp:GND.2",
-      "black",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "esp:13",
-      "btnClap:1.l",
-      "red",
-      [
-        "h0"
-      ]
-    ],
-    [
-      "btnClap:2.l",
-      "esp:GND.2",
-      "black",
-      [
-        "h0"
-      ]
-    ]
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "dht1:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "dht1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "dht1:SDA", "esp:15", "blue", [ "v0" ] ],
+    [ "esp:2", "r1:1", "green", [ "h0" ] ],
+    [ "r1:2", "led1:A", "green", [ "h0" ] ],
+    [ "led1:C", "esp:GND.2", "black", [ "h0" ] ],
+    [ "esp:14", "btnEmergency:1.l", "orange", [ "h0" ] ],
+    [ "btnEmergency:2.l", "esp:GND.2", "black", [ "h0" ] ]
   ],
   "dependencies": {}
 }
