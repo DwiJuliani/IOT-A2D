@@ -1,117 +1,123 @@
-/*
- * Perancangan Sistem Smart Lamp Berbasis ESP32 Menggunakan Sensor Suara
- * ---------------------------------------------------------------------
- * Fungsi  : Lampu menyala/mati dengan DUA KALI TEPUKAN (double clap).
- * Board   : ESP32 DevKit C
- * Sensor  : Sound sensor (KY-038 / small sound sensor) -> AO & DO
- * Output  : LED kuning (lampu), LED hijau (indikator tepukan)
- * Input   : Push button (saklar manual)
+/**
+ * Praktikum Minggu 1 - Teknologi IoT (Lab-0: Toolchain & Wokwi Simulator)
+ * Program Studi S1 Informatika, Fakultas Teknik, Universitas Bengkulu
+ * 
+ * Simulasi Wokwi: ESP32 + DHT22 + LED + Pushbutton (Emergency)
+ * Format Output: JSON Valid (ArduinoJson)
+ * 
+ * Fitur:
+ * - Pembacaan Suhu & Kelembaban DHT22
+ * - Non-blocking Telemetry menggunakan millis()
+ * - [C6 - Mencipta] Tombol darurat mengubah interval:
+ *   Mode Normal = 2000 ms, Mode Cepat/Darurat = 500 ms
  */
 
-// ---------- Konfigurasi pin ----------
-#define PIN_SOUND_DO  27   // output digital sensor suara
-#define PIN_SOUND_AO  34   // output analog sensor suara (ADC1)
-#define PIN_LAMP      26   // LED lampu
-#define PIN_STATUS    25   // LED indikator tepukan terdeteksi
-#define PIN_BUTTON    14   // tombol manual (INPUT_PULLUP)
-#define PIN_CLAP_SIM  13   // tombol simulasi tepukan (INPUT_PULLUP)
+#include <Arduino.h>
+#include <DHT.h>
+#include <ArduinoJson.h>
 
-// ---------- Parameter deteksi tepuk ----------
-const int  SOUND_ACTIVE_LEVEL = HIGH;   // ubah ke LOW jika sensor aktif-rendah
-const unsigned long CLAP_DEBOUNCE_MS = 120;   // jeda minimum antar tepukan
-const unsigned long CLAP_WINDOW_MS   = 1000;  // batas waktu tepukan ke-2
-const unsigned long STATUS_BLINK_MS  = 100;   // lama LED indikator menyala
-const unsigned long BUTTON_DEBOUNCE  = 50;
+// --- Konfigurasi Pin ---
+#define PIN_DHT          15    // Pin Data DHT22
+#define DHTTYPE          DHT22 // Sensor DHT22
+#define PIN_LED          2     // Pin LED Indikator
+#define PIN_BUTTON       14    // Pin Tombol Darurat (INPUT_PULLUP)
 
-// ---------- Variabel status ----------
-bool lampOn = false;
-int  clapCount = 0;
-unsigned long firstClapTime = 0;
-unsigned long lastClapTime  = 0;
-unsigned long statusOffTime = 0;
+// --- Konfigurasi Interval (ms) ---
+#define INTERVAL_NORMAL  2000
+#define INTERVAL_CEPAT   500
+#define DEBOUNCE_DELAY   50
 
-bool lastSoundState = !SOUND_ACTIVE_LEVEL;
-bool lastButtonState = HIGH;
-unsigned long lastButtonTime = 0;
+// Inisialisasi Sensor DHT
+DHT dht(PIN_DHT, DHTTYPE);
 
-void setLamp(bool state, const char *source) {
-  lampOn = state;
-  digitalWrite(PIN_LAMP, lampOn ? HIGH : LOW);
-  Serial.printf("[LAMPU] %s  (sumber: %s)\n", lampOn ? "ON " : "OFF", source);
-}
+// Variabel Kontrol Waktu & Mode
+unsigned long previousMillis = 0;
+unsigned long intervalTelemetri = INTERVAL_NORMAL;
+bool isEmergencyMode = false;
 
-void flashStatus() {
-  digitalWrite(PIN_STATUS, HIGH);
-  statusOffTime = millis() + STATUS_BLINK_MS;
-}
+// Variabel Debouncing Tombol
+int buttonState = HIGH;
+int lastButtonReading = HIGH;
+unsigned long lastDebounceTime = 0;
 
-void handleSound() {
-  unsigned long now = millis();
-  // Suara terdeteksi dari sensor ATAU dari tombol simulasi tepukan
-  bool soundState = (digitalRead(PIN_SOUND_DO) == SOUND_ACTIVE_LEVEL) ||
-                    (digitalRead(PIN_CLAP_SIM) == LOW);
+void handleEmergencyButton() {
+  int currentReading = digitalRead(PIN_BUTTON);
 
-  // Deteksi tepi naik (suara baru terdeteksi)
-  if (soundState && !lastSoundState && (now - lastClapTime > CLAP_DEBOUNCE_MS)) {
-    lastClapTime = now;
-    flashStatus();
+  if (currentReading != lastButtonReading) {
+    lastDebounceTime = millis();
+  }
 
-    // Jika tepukan pertama sudah kedaluwarsa, mulai hitung ulang
-    if (clapCount > 0 && (now - firstClapTime > CLAP_WINDOW_MS)) {
-      clapCount = 0;
-    }
+  if ((millis() - lastDebounceTime) > DEBOUNCE_DELAY) {
+    if (currentReading != buttonState) {
+      buttonState = currentReading;
 
-    clapCount++;
-    if (clapCount == 1) {
-      firstClapTime = now;
-      Serial.printf("[SUARA] Tepukan 1 | level analog = %d\n", analogRead(PIN_SOUND_AO));
-    } else if (clapCount == 2) {
-      Serial.printf("[SUARA] Tepukan 2 | selang = %lu ms\n", now - firstClapTime);
-      setLamp(!lampOn, "double clap");
-      clapCount = 0;
+      // Terdeteksi penekanan tombol (aktif LOW)
+      if (buttonState == LOW) {
+        // [C6 - Mencipta] Toggle interval antara 2000 ms dan 500 ms
+        isEmergencyMode = !isEmergencyMode;
+        intervalTelemetri = isEmergencyMode ? INTERVAL_CEPAT : INTERVAL_NORMAL;
+
+        Serial.print(">> [ALERT] Tombol darurat ditekan! Mode beralih ke: ");
+        Serial.print(isEmergencyMode ? "DARURAT (500 ms)" : "NORMAL (2000 ms)");
+        Serial.println(" <<");
+      }
     }
   }
-  lastSoundState = soundState;
-
-  // Satu tepukan saja -> diabaikan setelah window habis
-  if (clapCount == 1 && (now - firstClapTime > CLAP_WINDOW_MS)) {
-    Serial.println("[SUARA] Hanya 1 tepukan, diabaikan");
-    clapCount = 0;
-  }
+  lastButtonReading = currentReading;
 }
 
-void handleButton() {
-  bool btn = digitalRead(PIN_BUTTON);
-  if (btn == LOW && lastButtonState == HIGH &&
-      millis() - lastButtonTime > BUTTON_DEBOUNCE) {
-    lastButtonTime = millis();
-    setLamp(!lampOn, "tombol manual");
+void sendTelemetry() {
+  float suhu = dht.readTemperature();
+  float kelembaban = dht.readHumidity();
+
+  if (isnan(suhu) || isnan(kelembaban)) {
+    Serial.println("{\"status\":\"error\",\"message\":\"Gagal membaca sensor DHT22!\"}");
+    return;
   }
-  lastButtonState = btn;
+
+  // Kedipkan LED indikator pengiriman data
+  digitalWrite(PIN_LED, HIGH);
+
+  // Buat payload JSON
+  JsonDocument doc;
+  doc["device_id"] = "ESP32_UNIB_IOT";
+  doc["suhu"] = serialized(String(suhu, 2));
+  doc["kelembaban"] = serialized(String(kelembaban, 2));
+  doc["mode"] = isEmergencyMode ? "DARURAT" : "NORMAL";
+  doc["interval_ms"] = intervalTelemetri;
+  doc["uptime_ms"] = millis();
+
+  // Serialisasi data JSON ke Serial Monitor
+  serializeJson(doc, Serial);
+  Serial.println();
+
+  digitalWrite(PIN_LED, LOW);
 }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_SOUND_DO, INPUT);
-  pinMode(PIN_SOUND_AO, INPUT);
-  pinMode(PIN_LAMP, OUTPUT);
-  pinMode(PIN_STATUS, OUTPUT);
+  pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_BUTTON, INPUT_PULLUP);
-  pinMode(PIN_CLAP_SIM, INPUT_PULLUP);
+  digitalWrite(PIN_LED, LOW);
 
-  digitalWrite(PIN_LAMP, LOW);
-  digitalWrite(PIN_STATUS, LOW);
+  dht.begin();
 
-  Serial.println("=== Smart Lamp ESP32 - Sensor Suara ===");
-  Serial.println("Tepuk 2x untuk menyalakan/mematikan lampu.");
+  Serial.println("==================================================");
+  Serial.println(" Praktikum Minggu 1 - Teknologi IoT FT UNIB");
+  Serial.println(" Simulasi ESP32 + DHT22 + LED + Pushbutton");
+  Serial.println(" Mode Awal: NORMAL (Interval 2000 ms)");
+  Serial.println(" Tekan Tombol Darurat untuk Ubah Interval ke 500 ms");
+  Serial.println("==================================================");
 }
 
 void loop() {
-  handleSound();
-  handleButton();
+  // Tangani tombol secara responsif (non-blocking)
+  handleEmergencyButton();
 
-  if (statusOffTime && millis() >= statusOffTime) {
-    digitalWrite(PIN_STATUS, LOW);
-    statusOffTime = 0;
+  // Kirim telemetri periodik secara non-blocking
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= intervalTelemetri) {
+    previousMillis = currentMillis;
+    sendTelemetry();
   }
 }
