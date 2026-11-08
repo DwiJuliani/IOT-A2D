@@ -1,90 +1,90 @@
 # Perancangan Sistem Smart Lamp Berbasis ESP32 Menggunakan Sensor Suara
+**Program Studi S1 Informatika, Fakultas Teknik, Universitas Bengkulu**  
+**Mata Kuliah:** Teknologi IoT | Praktikum Minggu 1 (Lab-0: Toolchain & Wokwi Simulator)
 
-Proyek tugas IoT: lampu pintar yang dikendalikan dengan **tepukan tangan dua kali (double clap)** menggunakan ESP32 dan sensor suara. Seluruh sistem disimulasikan di [Wokwi](https://wokwi.com).
+> 🔗 **Tautan Simulasi Wokwi:** [https://wokwi.com/projects/479765417567553537](https://wokwi.com/projects/479765417567553537)
 
-> 🔗 **Link simulasi Wokwi:** _(https://wokwi.com/projects/479765417567553537)_
+---
 
-## 1. Latar Belakang & Tujuan
-Saklar konvensional mengharuskan pengguna menyentuh perangkat secara fisik. Sistem ini memungkinkan lampu dinyalakan/dimatikan hanya dengan suara tepukan, sehingga lebih praktis, khususnya bagi lansia dan penyandang disabilitas.
+## 1. Deskripsi Proyek
+Proyek ini merancang sistem lampu pintar (**Smart Lamp**) yang dikendalikan dengan **tepukan tangan dua kali (double clap)** menggunakan ESP32 dan sensor suara KY-038. Sistem ini juga mengintegrasikan sensor suhu & kelembaban **DHT22**, indikator LED, dan tombol manual/darurat untuk memenuhi seluruh kriteria verifikasi unjuk kerja praktikum IoT (Tabel 3.3 dan Tugas C5 & C6).
 
-**Tujuan:** merancang dan mensimulasikan sistem smart lamp berbasis ESP32 yang merespons sensor suara.
+---
 
-## 2. Komponen
-| Komponen | Jumlah | Fungsi |
-|---|---|---|
-| ESP32 DevKit C | 1 | Mikrokontroler utama |
-| Sound Sensor (KY-038) | 1 | Mendeteksi suara tepukan |
-| LED kuning | 1 | Representasi lampu |
-| LED hijau | 1 | Indikator tepukan terdeteksi |
-| Resistor 220 Ω | 2 | Pembatas arus LED |
-| Push button biru | 1 | Saklar manual (cadangan) |
-| Push button merah | 1 | Simulasi tepukan tangan di Wokwi |
+## 2. Anggota Kelompok
+| No | Nama Lengkap | NIM | Peran Utama |
+|:---:|---|:---:|---|
+| 1 | **Dwi Juliani** | G1A024084 | Setup PlatformIO, Toolchain & Dependencies |
+| 2 | **Adiva Luthfiyyah Yulian** | G1A024110 | Firmware Logic (Non-blocking, Double Clap & C6) |
+| 3 | **Agief Vemas A** | G1A024037 | Wiring Diagram Wokwi, Telemetri JSON & Testing |
 
-## 3. Wiring
-| Komponen | Pin komponen | Pin ESP32 |
-|---|---|---|
-| Sound sensor | VCC | 3V3 |
-| Sound sensor | GND | GND |
-| Sound sensor | AO | GPIO 34 |
-| Sound sensor | DO | GPIO 27 |
-| LED lampu | Anoda (via R 220 Ω) | GPIO 26 |
-| LED status | Anoda (via R 220 Ω) | GPIO 25 |
-| Push button biru | Kaki 1 / kaki 2 | GPIO 14 / GND |
-| Push button merah (CLAP) | Kaki 1 / kaki 2 | GPIO 13 / GND |
-| Kedua LED | Katoda | GND |
+---
 
-## 4. Cara Kerja
-```mermaid
-flowchart TD
-    A([Mulai]) --> B[Baca sensor suara DO]
-    B --> C{Suara terdeteksi?}
-    C -- Tidak --> B
-    C -- Ya --> D[Hitung tepukan]
-    D --> E{Tepukan ke-2 dalam 1 detik?}
-    E -- Tidak --> F[Abaikan / tunggu]
-    F --> B
-    E -- Ya --> G[Toggle lampu ON/OFF]
-    G --> B
-```
-1. Sensor suara menghasilkan sinyal pada pin DO saat ada suara keras.
-2. ESP32 mendeteksi tepi sinyal dan menghitung jumlah tepukan.
-3. Jika dua tepukan terjadi dalam **1 detik**, status lampu di-*toggle*.
-4. Satu tepukan saja diabaikan untuk mengurangi pemicu palsu.
-5. Tombol manual tersedia sebagai cadangan.
-
-## 5. Cara Menjalankan Simulasi
-1. Buka [wokwi.com](https://wokwi.com) → **New Project** → **ESP32**.
-2. Salin isi `sketch.ino` dan `diagram.json` dari repo ini ke tab yang sesuai.
-3. Klik **Start Simulation**.
-4. Buka **Serial Monitor**, lalu klik tombol merah **CLAP** dua kali berturut-turut dengan cepat (kurang dari 1 detik) untuk mensimulasikan dua tepukan.
-5. LED kuning akan menyala/mati, dan log tampil di Serial Monitor.
-
-## 6. Contoh Output Serial Monitor
-```
-=== Smart Lamp ESP32 - Sensor Suara ===
-Tepuk 2x untuk menyalakan/mematikan lampu.
-[SUARA] Tepukan 1 | level analog = 2048
-[SUARA] Tepukan 2 | selang = 380 ms
-[LAMPU] ON   (sumber: double clap)
+## 3. Struktur 5 Folder Standar Repositori
+Repositori ini disusun mengikuti arsitektur proyek PlatformIO / IoT Lab standar:
+```text
+IOT-A2D/
+├── src/                  # Folder 1: Berkas sumber utama (main.cpp)
+├── include/              # Folder 2: File header konfigurasi hardware (config.h)
+├── lib/                  # Folder 3: Modul / pustaka lokal
+├── docs/                 # Folder 4: Laporan, evaluasi C5, dokumentasi blocking vs non-blocking
+├── diagram/              # Folder 5: Skematik rangkaian Wokwi (diagram.json)
+├── platformio.ini        # File konfigurasi PlatformIO Build System
+├── diagram.json          # File rangkaian Wokwi (root kompatibilitas)
+├── sketch.ino            # File sketch Arduino (root kompatibilitas)
+├── libraries.txt         # Daftar pustaka Wokwi simulator
+└── README.md             # Dokumentasi utama proyek
 ```
 
-## 7. Struktur Repository
-```
-smart-lamp-esp32/
-├── sketch.ino      # program utama
-├── diagram.json    # rangkaian Wokwi
-├── libraries.txt   # dependensi (kosong)
-└── README.md
-```
+---
 
-## 8. Pengembangan Lanjutan
-- Mengganti LED dengan modul relay untuk lampu AC sungguhan.
-- Integrasi WiFi/MQTT agar bisa dikontrol dari smartphone.
-- Penambahan sensor cahaya (LDR) agar hanya aktif saat gelap.
+## 4. Wiring Hardware & Komponen
 
-## 9. Anggota Kelompok
-| No | Nama | NIM |
-|:---:|---|---|
-| 1 | Agief Vemas A | G1A024037 |
-| 2 | Dwi Juliani | G1A024084 |
-| 3 | Adiva Luthfiyyah Yulian | G1A024110 |
+| Komponen | Pin Komponen | Pin ESP32 DevKit | Fungsi |
+|---|---|---|---|
+| **Sensor Suara KY-038** | VCC | 3V3 | Catu daya |
+| | GND | GND | Ground |
+| | DO | GPIO 27 | Deteksi tepukan suara |
+| | AO | GPIO 34 | Level kebisingan analog |
+| **Sensor DHT22** | VCC | 3V3 | Catu daya |
+| | GND | GND | Ground |
+| | SDA | GPIO 15 | Input suhu & kelembaban (Ceklis 2) |
+| **LED Lampu Utama** | Anoda (via R 220 Ω) | GPIO 26 | Lampu pintar (Kuning) |
+| | Katoda | GND | Ground |
+| **LED Status Tepukan** | Anoda (via R 220 Ω) | GPIO 25 | Indikator tepukan suara (Hijau) |
+| | Katoda | GND | Ground |
+| **Pushbutton Biru** | Kaki 1 / 2 | GPIO 14 / GND | Saklar manual & Mode Cepat (C6) |
+| **Pushbutton Merah** | Kaki 1 / 2 | GPIO 13 / GND | Simulasi tepukan tangan (CLAP) di Wokwi |
+
+---
+
+## 5. Cara Kerja Sistem
+1. **Deteksi Double Clap:**
+   - Ketika tepukan pertama terdeteksi, LED hijau berkedip singkat dan mikrokontroler membuka jendela waktu 1 detik.
+   - Jika tepukan kedua terjadi dalam rentang waktu < 1 detik, status lampu utama (LED kuning) di-*toggle* (ON $\leftrightarrow$ OFF).
+2. **Telemetri JSON Valid (ArduinoJson):**
+   - ESP32 secara periodik mengirimkan data telemetri berformat JSON ke Serial Monitor yang mencakup status lampu, suhu, kelembaban, level suara, mode, dan interval.
+3. **[C6 - Mencipta] Kontrol Interval Mode Darurat:**
+   - Mode Normal: Telemetri dikirim setiap **2000 ms**.
+   - Mode Cepat/Darurat: Ketika tombol biru ditekan, interval otomatis berubah menjadi **500 ms** (dan lampu di-*toggle* secara manual).
+   - Menekan tombol sekali lagi mengembalikan interval ke **2000 ms**.
+4. **Non-Blocking Execution (`millis()`):**
+   - Tidak ada fungsi `delay()` yang menghalangi CPU, sehingga deteksi tepukan suara dan tombol manual tetap responsif 100% setiap saat.
+
+---
+
+## 6. Panduan Menjalankan Simulasi di Wokwi
+1. Buka tautan simulasi: 👉 [Wokwi Project 479765417567553537](https://wokwi.com/projects/479765417567553537).
+2. Salin isi file `sketch.ino` dan `diagram.json` ke proyek Wokwi.
+3. Klik tombol **Start Simulation**.
+4. Buka tab **Serial Monitor** (115200 baud).
+5. Klik tombol merah **CLAP** 2 kali berturut-turut untuk menyalakan/mematikan lampu.
+6. Klik tombol biru **Manual / Mode** untuk menyalakan lampu manual dan mengubah interval pengiriman telemetri dari 2000 ms ke 500 ms.
+
+---
+
+## 7. Pemenuhan Ceklis Verifikasi Laboratorium (Tabel 3.3)
+1. **Toolchain PlatformIO:** `platformio.ini` terkonfigurasi dengan pustaka `ArduinoJson` & `DHT sensor library` (`firmware.bin zero error`).
+2. **ESP32 + DHT22 + LED + Pushbutton:** Terintegrasi di simulasi Wokwi dengan output JSON valid.
+3. **Demonstrasi Blocking vs Non-Blocking:** Terdokumentasi lengkap di [`docs/laporan_praktikum_minggu_1.md`](file:///c:/Users/LENOVO/Downloads/IOT-A2D/docs/laporan_praktikum_minggu_1.md).
+4. **Struktur 5 Folder & Riwayat Commit Tim:** Repositori memiliki 5 folder standar dengan commit dari seluruh anggota tim (Dwi Juliani, Adiva Luthfiyyah Yulian, Agief Vemas A).
