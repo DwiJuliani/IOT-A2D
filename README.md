@@ -30,9 +30,8 @@ IOT-A2D/
 ├── docs/                 # Folder 4: Laporan, evaluasi C5, dokumentasi blocking vs non-blocking
 ├── diagram/              # Folder 5: Skematik rangkaian Wokwi (diagram.json)
 ├── platformio.ini        # File konfigurasi PlatformIO Build System
-├── diagram.json          # File rangkaian Wokwi (root kompatibilitas)
-├── sketch.ino            # File sketch Arduino (root kompatibilitas)
-├── libraries.txt         # Daftar pustaka Wokwi simulator
+├── diagram.json          # File rangkaian Wokwi Simulator
+├── wokwi.toml            # File integrasi Wokwi di VS Code
 └── README.md             # Dokumentasi utama proyek
 ```
 
