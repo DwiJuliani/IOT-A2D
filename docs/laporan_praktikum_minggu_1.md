@@ -27,7 +27,7 @@
 
 ### 2. Simulasi Wokwi: ESP32 + DHT22 + LED + Pushbutton + Sensor Suara (Komponen 2)
 * Seluruh komponen yang disyaratkan (ESP32, DHT22, LED, Pushbutton) terintegrasi secara harmonis dengan fitur utama Smart Lamp (Sensor Suara KY-038).
-* Tautan Simulasi: 👉 **[Wokwi Project 479765417567553537](https://wokwi.com/projects/479765417567553537)**
+* Tautan Simulasi: 👉 **[Wokwi Project 480138974654676993](https://wokwi.com/projects/480138974654676993)**
 * **Tabel Pinout:**
   | Komponen | Pin Komponen | Pin ESP32 DevKit | Fungsi / Keterangan |
   |---|---|---|---|

@@ -2,7 +2,7 @@
 **Program Studi S1 Informatika, Fakultas Teknik, Universitas Bengkulu**  
 **Mata Kuliah:** Teknologi IoT | Praktikum Minggu 1 (Lab-0: Toolchain & Wokwi Simulator)
 
-> 🔗 **Tautan Simulasi Wokwi:** [https://wokwi.com/projects/479765417567553537](https://wokwi.com/projects/479765417567553537)
+> 🔗 **Tautan Simulasi Wokwi:** [https://wokwi.com/projects/480138974654676993](https://wokwi.com/projects/480138974654676993)
 
 ---
 
@@ -74,7 +74,7 @@ IOT-A2D/
 ---
 
 ## 6. Panduan Menjalankan Simulasi di Wokwi
-1. Buka tautan simulasi: 👉 [Wokwi Project 479765417567553537](https://wokwi.com/projects/479765417567553537).
+1. Buka tautan simulasi: 👉 [Wokwi Project 480138974654676993](https://wokwi.com/projects/480138974654676993).
 2. Salin isi file `sketch.ino` dan `diagram.json` ke proyek Wokwi.
 3. Klik tombol **Start Simulation**.
 4. Buka tab **Serial Monitor** (115200 baud).

@@ -2,7 +2,7 @@
 
 Folder ini berisi skematik rangkaian Wokwi (`diagram.json`) untuk pengujian simulasi ESP32 + DHT22 + LED + Pushbutton.
 
-- **Tautan Simulasi Langsung:** [Wokwi Project 479765417567553537](https://wokwi.com/projects/479765417567553537)
+- **Tautan Simulasi Langsung:** [Wokwi Project 480138974654676993](https://wokwi.com/projects/480138974654676993)
 - **Komponen:**
   - ESP32 DevKit C v4
   - Sensor DHT22 (Pin Data: GPIO 15)
