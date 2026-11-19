@@ -1,110 +1,34 @@
 {
   "version": 1,
-  "author": "Kelompok IoT FT UNIB",
+  "author": "IoT Lab Group",
   "editor": "wokwi",
   "parts": [
-    {
-      "type": "board-esp32-devkit-c-v4",
-      "id": "esp",
-      "top": 0,
-      "left": 0,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-small-sound-sensor",
-      "id": "mic1",
-      "top": -90,
-      "left": -220,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-dht22",
-      "id": "dht1",
-      "top": 90,
-      "left": -220,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-led",
-      "id": "ledLamp",
-      "top": -120,
-      "left": 190,
-      "attrs": {
-        "color": "yellow",
-        "label": "Lampu"
-      }
-    },
-    {
-      "type": "wokwi-led",
-      "id": "ledStatus",
-      "top": -120,
-      "left": 260,
-      "attrs": {
-        "color": "green",
-        "label": "Status"
-      }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r1",
-      "top": -50,
-      "left": 180,
-      "rotate": 90,
-      "attrs": {
-        "value": "220"
-      }
-    },
-    {
-      "type": "wokwi-resistor",
-      "id": "r2",
-      "top": -50,
-      "left": 250,
-      "rotate": 90,
-      "attrs": {
-        "value": "220"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "btn1",
-      "top": 140,
-      "left": 180,
-      "attrs": {
-        "color": "blue",
-        "label": "Manual / Mode"
-      }
-    },
-    {
-      "type": "wokwi-pushbutton",
-      "id": "btnClap",
-      "top": 230,
-      "left": 180,
-      "attrs": {
-        "color": "red",
-        "label": "CLAP"
-      }
-    }
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -120, "left": -120, "attrs": { "label": "Sensor Tanah (ADC1)" } },
+    { "type": "wokwi-relay-module", "id": "relay1", "top": -120, "left": 200, "attrs": { "label": "Relay Pompa" } },
+    { "type": "wokwi-led", "id": "led_fan", "top": 150, "left": 220, "attrs": { "color": "blue", "label": "PWM Kipas" } },
+    { "type": "wokwi-led", "id": "led_alarm", "top": 220, "left": 220, "attrs": { "color": "red", "label": "Alarm Dry-Run" } },
+    { "type": "wokwi-pushbutton", "id": "btn_mode", "top": 150, "left": -120, "attrs": { "label": "Toggle Mode/Reset" } },
+    { "type": "wokwi-resistor", "id": "r1", "top": 180, "left": 150, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": 250, "left": 150, "attrs": { "value": "220" } }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
     [ "esp:RX", "$serialMonitor:TX", "", [] ],
-    [ "mic1:VCC", "esp:3V3", "red", [ "h0" ] ],
-    [ "mic1:GND", "esp:GND.1", "black", [ "h0" ] ],
-    [ "mic1:AO", "esp:34", "orange", [ "h0" ] ],
-    [ "mic1:DO", "esp:27", "purple", [ "h0" ] ],
-    [ "dht1:VCC", "esp:3V3", "red", [ "h0" ] ],
-    [ "dht1:GND", "esp:GND.1", "black", [ "h0" ] ],
-    [ "dht1:SDA", "esp:15", "blue", [ "h0" ] ],
-    [ "esp:26", "r1:1", "gold", [ "h0" ] ],
-    [ "r1:2", "ledLamp:A", "gold", [ "h0" ] ],
-    [ "ledLamp:C", "esp:GND.2", "black", [ "h0" ] ],
-    [ "esp:25", "r2:1", "green", [ "h0" ] ],
-    [ "r2:2", "ledStatus:A", "green", [ "h0" ] ],
-    [ "ledStatus:C", "esp:GND.2", "black", [ "h0" ] ],
-    [ "esp:14", "btn1:1.l", "blue", [ "h0" ] ],
-    [ "btn1:2.l", "esp:GND.2", "black", [ "h0" ] ],
-    [ "esp:13", "btnClap:1.l", "red", [ "h0" ] ],
-    [ "btnClap:2.l", "esp:GND.2", "black", [ "h0" ] ]
+    [ "pot1:VCC", "esp:3V3", "red", [] ],
+    [ "pot1:GND", "esp:GND.2", "black", [] ],
+    [ "pot1:SIG", "esp:34", "green", [] ],
+    [ "relay1:VCC", "esp:5V", "red", [] ],
+    [ "relay1:GND", "esp:GND.2", "black", [] ],
+    [ "relay1:IN", "esp:4", "orange", [] ],
+    [ "esp:15", "r1:1", "blue", [] ],
+    [ "r1:2", "led_fan:A", "blue", [] ],
+    [ "led_fan:C", "esp:GND.2", "black", [] ],
+    [ "esp:18", "r2:1", "red", [] ],
+    [ "r2:2", "led_alarm:A", "red", [] ],
+    [ "led_alarm:C", "esp:GND.2", "black", [] ],
+    [ "esp:26", "btn_mode:2.l", "purple", [] ],
+    [ "btn_mode:1.l", "esp:GND.2", "black", [] ]
   ],
   "dependencies": {}
 }

@@ -1,89 +1,82 @@
-# Perancangan Sistem Smart Lamp Berbasis ESP32 Menggunakan Sensor Suara
-**Program Studi S1 Informatika, Fakultas Teknik, Universitas Bengkulu**  
-**Mata Kuliah:** Teknologi IoT | Praktikum Minggu 1 (Lab-0: Toolchain & Wokwi Simulator)
+# Praktikum IoT Minggu 02: GPIO, ADC, PWM, & Sensor Kelembaban Tanah
 
-> 🔗 **Tautan Simulasi Wokwi:** [https://wokwi.com/projects/480138974654676993](https://wokwi.com/projects/480138974654676993)
+Proyek ini dibuat untuk memenuhi seluruh poin penilaian pada **Bagian 3.3 Ceklis Verifikasi Laboratorium & Komponen Penilaian Laporan Lab-1 (Bobot 2% NA)** pada dokumen panduan `Praktikum_Minggu_02_GPIO_ADC_PWM_Sensor.pdf`.
 
 ---
 
-## 1. Deskripsi Proyek
-Proyek ini merancang sistem lampu pintar (**Smart Lamp**) yang dikendalikan dengan **tepukan tangan dua kali (double clap)** menggunakan ESP32 dan sensor suara KY-038. Sistem ini juga mengintegrasikan sensor suhu & kelembaban **DHT22**, indikator LED, dan tombol manual/darurat untuk memenuhi seluruh kriteria verifikasi unjuk kerja praktikum IoT (Tabel 3.3 dan Tugas C5 & C6).
+## 📁 Struktur Berkas di VS Code
 
----
-
-## 2. Anggota Kelompok
-| No | Nama Lengkap | NIM | Peran Utama |
-|:---:|---|:---:|---|
-| 1 | **Dwi Juliani** | G1A024084 | Setup PlatformIO, Toolchain & Dependencies |
-| 2 | **Adiva Luthfiyyah Yulian** | G1A024110 | Firmware Logic (Non-blocking, Double Clap & C6) |
-| 3 | **Agief Vemas A** | G1A024037 | Wiring Diagram Wokwi, Telemetri JSON & Testing |
-
----
-
-## 3. Struktur 5 Folder Standar Repositori
-Repositori ini disusun mengikuti arsitektur proyek PlatformIO / IoT Lab standar:
 ```text
-IOT-A2D/
-├── src/                  # Folder 1: Berkas sumber utama (main.cpp)
-├── include/              # Folder 2: File header konfigurasi hardware (config.h)
-├── lib/                  # Folder 3: Modul / pustaka lokal
-├── docs/                 # Folder 4: Laporan, evaluasi C5, dokumentasi blocking vs non-blocking
-├── diagram/              # Folder 5: Skematik rangkaian Wokwi (diagram.json)
-├── platformio.ini        # File konfigurasi PlatformIO Build System
-├── diagram.json          # File rangkaian Wokwi Simulator
-├── wokwi.toml            # File integrasi Wokwi di VS Code
-└── README.md             # Dokumentasi utama proyek
+IOT WEEK 2/
+├── CEKLIS_VERIFIKASI.md         # Tabel 3.3 Ceklis Verifikasi Lab & Panduan Demo Asisten
+├── LAPORAN_PRAKTIKUM_WEEK_2.md  # Draf Laporan Lengkap (Tabel 3.1 & 3.2, Jawaban C1–C6)
+├── IOT_Week_2.ino               # Kode Arduino IDE / Arduino CLI untuk ESP32
+├── src/
+│   └── main.cpp                 # Kode C++ utama PlatformIO untuk ESP32
+├── platformio.ini               # Konfigurasi PlatformIO untuk VS Code
+├── diagram.json                 # Skema simulasi interaktif Wokwi di VS Code
+├── wokwi.toml                   # Konfigurasi simulator Wokwi
+└── README.md                    # Petunjuk penggunaan dan verifikasi
 ```
 
 ---
 
-## 4. Wiring Hardware & Komponen
+## 📌 Pemetaan Pin ESP32 (Sesuai Poin 1 Ceklis)
 
-| Komponen | Pin Komponen | Pin ESP32 DevKit | Fungsi |
-|---|---|---|---|
-| **Sensor Suara KY-038** | VCC | 3V3 | Catu daya |
-| | GND | GND | Ground |
-| | DO | GPIO 27 | Deteksi tepukan suara |
-| | AO | GPIO 34 | Level kebisingan analog |
-| **Sensor DHT22** | VCC | 3V3 | Catu daya |
-| | GND | GND | Ground |
-| | SDA | GPIO 15 | Input suhu & kelembaban (Ceklis 2) |
-| **LED Lampu Utama** | Anoda (via R 220 Ω) | GPIO 26 | Lampu pintar (Kuning) |
-| | Katoda | GND | Ground |
-| **LED Status Tepukan** | Anoda (via R 220 Ω) | GPIO 25 | Indikator tepukan suara (Hijau) |
-| | Katoda | GND | Ground |
-| **Pushbutton Biru** | Kaki 1 / 2 | GPIO 14 / GND | Saklar manual & Mode Cepat (C6) |
-| **Pushbutton Merah** | Kaki 1 / 2 | GPIO 13 / GND | Simulasi tepukan tangan (CLAP) di Wokwi |
+| Komponen | Pin ESP32 | Keterangan |
+|---|---|---|
+| **Sensor Tanah / Potensiometer** | `GPIO 34` | ADC1_CH6 (*Input Only*, aman saat Wi-Fi aktif) |
+| **Modul Relay Pompa Air** | `GPIO 4` | Digital Output kendali relai |
+| **Kipas / LED Indikator PWM** | `GPIO 15` | Sinyal PWM LEDC (5 kHz, 8-bit resolusi) |
+| **LED Alarm Dry-Run Cut-Off** | `GPIO 18` | Indikator visual peringatan air habis |
+| **Push-Button Mode & Reset** | `GPIO 26` | Tombol internal *pull-up* untuk ganti mode / reset alarm |
 
 ---
 
-## 5. Cara Kerja Sistem
-1. **Deteksi Double Clap:**
-   - Ketika tepukan pertama terdeteksi, LED hijau berkedip singkat dan mikrokontroler membuka jendela waktu 1 detik.
-   - Jika tepukan kedua terjadi dalam rentang waktu < 1 detik, status lampu utama (LED kuning) di-*toggle* (ON $\leftrightarrow$ OFF).
-2. **Telemetri JSON Valid (ArduinoJson):**
-   - ESP32 secara periodik mengirimkan data telemetri berformat JSON ke Serial Monitor yang mencakup status lampu, suhu, kelembaban, level suara, mode, dan interval.
-3. **[C6 - Mencipta] Kontrol Interval Mode Darurat:**
-   - Mode Normal: Telemetri dikirim setiap **2000 ms**.
-   - Mode Cepat/Darurat: Ketika tombol biru ditekan, interval otomatis berubah menjadi **500 ms** (dan lampu di-*toggle* secara manual).
-   - Menekan tombol sekali lagi mengembalikan interval ke **2000 ms**.
-4. **Non-Blocking Execution (`millis()`):**
-   - Tidak ada fungsi `delay()` yang menghalangi CPU, sehingga deteksi tepukan suara dan tombol manual tetap responsif 100% setiap saat.
+## 🚀 Cara Menjalankan & Menguji di VS Code
+
+### Opsi 1: Menggunakan PlatformIO di VS Code
+1. Buka folder `IOT WEEK 2` di VS Code.
+2. Pasang ekstensi **PlatformIO IDE** (jika belum ada).
+3. Sambungkan board ESP32 via kabel USB.
+4. Klik tombol **Build (✓)** di status bar bawah VS Code untuk mengompilasi.
+5. Klik tombol **Upload (→)** untuk mengunggah program ke ESP32.
+6. Buka **Serial Monitor** pada baud rate `115200` untuk melihat data telemetri.
+
+### Opsi 2: Simulasi Langsung di VS Code via Ekstensi Wokwi
+1. Pasang ekstensi **Wokwi Simulator** di VS Code.
+2. Buka berkas `diagram.json`.
+3. Tekan `F1` lalu pilih `Wokwi: Start Simulator`.
+4. Anda dapat langsung menggeser potensiometer, melihat relai aktif, melihat modulasi kecerahan LED PWM, dan menekan tombol di GPIO 26!
 
 ---
 
-## 6. Panduan Menjalankan Simulasi di Wokwi
-1. Buka tautan simulasi: 👉 [Wokwi Project 480138974654676993](https://wokwi.com/projects/480138974654676993).
-2. Salin isi file `sketch.ino` dan `diagram.json` ke proyek Wokwi.
-3. Klik tombol **Start Simulation**.
-4. Buka tab **Serial Monitor** (115200 baud).
-5. Klik tombol merah **CLAP** 2 kali berturut-turut untuk menyalakan/mematikan lampu.
-6. Klik tombol biru **Manual / Mode** untuk menyalakan lampu manual dan mengubah interval pengiriman telemetri dari 2000 ms ke 500 ms.
+## 🎯 Panduan Demonstrasi ke Asisten Laboratorium
+
+Saat asisten laboratorium melakukan verifikasi di meja Anda:
+1. **Verifikasi Pin Aman & Kompilasi (Poin 1):**  
+   Tunjukkan kode `src/main.cpp` atau `IOT_Week_2.ino` yang terkompilasi sukses 0 galat (*zero error*) dan jelaskan bahwa GPIO 34 adalah ADC1 yang aman.
+2. **Moving Average & Inverse Mapping (Poin 2):**  
+   Buka Serial Monitor. Putar potensiometer dari ujung ke ujung. Tunjukkan bahwa nilai `Filtered ADC` stabil tanpa fluktuasi derau, dan nilai kelembaban terpetakan terbalik: `ADC tinggi = 0%`, `ADC rendah = 100%`.
+3. **Demonstrasi Chattering vs Histeresis & Modulasi PWM (Poin 3):**  
+   - Beralih ke **Mode Chattering** (tekan tombol GPIO 26 atau ketik `m` di Serial Monitor). Posisikan nilai di sekitar $40\%$, tunjukkan relai bergetar/berpindah sangat cepat akibat *noise*.
+   - Beralih ke **Mode Histeresis** (tekan tombol GPIO 26 lagi). Tunjukkan pada rentang $35\% - 55\%$ relai stabil dan tidak pernah *chattering*.
+   - Tunjukkan modulasi PWM kipas di GPIO 15 yang kecepatannya berubah halus proporsional.
+4. **Fitur C6 Dry-Run Safety Cut-Off & Bukti Git (Poin 4):**  
+   - Buat kondisi kelembaban $< 35\%$ sehingga relai menyala.
+   - Jangan ubah potensiometer selama 10 detik (simulasi tandon air habis).
+   - Tunjukkan relai seketika mati paksa (**CUT-OFF**), LED Alarm di GPIO 18 berkedip cepat, dan sistem terkunci.
+   - Tekan tombol GPIO 26 untuk mereset.
+   - Buka terminal VS Code dan jalankan `git log --oneline` untuk membuktikan kode dan draf laporan sudah di-*commit*.
 
 ---
 
-## 7. Pemenuhan Ceklis Verifikasi Laboratorium (Tabel 3.3)
-1. **Toolchain PlatformIO:** `platformio.ini` terkonfigurasi dengan pustaka `ArduinoJson` & `DHT sensor library` (`firmware.bin zero error`).
-2. **ESP32 + DHT22 + LED + Pushbutton:** Terintegrasi di simulasi Wokwi dengan output JSON valid.
-3. **Demonstrasi Blocking vs Non-Blocking:** Terdokumentasi lengkap di [`docs/laporan_praktikum_minggu_1.md`](file:///c:/Users/LENOVO/Downloads/IOT-A2D/docs/laporan_praktikum_minggu_1.md).
-4. **Struktur 5 Folder & Riwayat Commit Tim:** Repositori memiliki 5 folder standar dengan commit dari seluruh anggota tim (Dwi Juliani, Adiva Luthfiyyah Yulian, Agief Vemas A).
+## 💻 Perintah Git untuk Push ke Cabang Kelompok
+
+Jalankan perintah ini di terminal VS Code:
+```bash
+git add .
+git commit -m "feat(lab-1): penyelesaian tugas praktikum week 2 gpio adc pwm sensor dan laporan lengkap"
+git push origin kelompok-a2d
+```
+*(Ganti `kelompok-a2d` dengan nama cabang Git kelompok Anda)*.
