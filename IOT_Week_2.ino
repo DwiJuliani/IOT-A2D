@@ -122,6 +122,7 @@ int calculateMoisturePercent(int adcValue) {
  * Konfigurasi PWM Kipas (Dukungan kompatibilitas ESP32 Core 2.x & 3.x)
  */
 void setupPWM() {
+  pinMode(PIN_PWM_FAN, OUTPUT);
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
   ledcAttach(PIN_PWM_FAN, PWM_FREQ, PWM_RESOLUTION);
 #else
